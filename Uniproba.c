@@ -2,47 +2,49 @@
 #include <stdlib.h>        // Подключаем заголовочный файл для работы с памятью
 #include <string.h>        // Подключаем заголовочный файл для работы со строками
 #include <ctype.h>         // Подключаем заголовочный файл для работы с символами
+#include <wctype.h>     // Для работы с символами Unicode
+#include <wchar.h>      // Для работы с широкими символами
 #include <locale.h>
 
-int isPalindrome(const char *str);
+int isPalindrome(const wchar_t *str);
 
-void findPalindromes(const char *buffer, int *maxLen, int *start, int *len);
+void findPalindromes(const wchar_t *buffer, int *maxLen, int *start, int *len);
 
-void removePunctuationAndSpaces(char *str);
+void removePunctuationAndSpaces(wchar_t *str);
 
 void SayHiForUser();
 
 
 int main(int argc, char *argv[]) {
-        setlocale(LC_ALL, "ru_RU.utf8");
+    setlocale(LC_ALL, "ru_RU.UTF-8"); // Устанавливаем локаль для русского языка с кодировкой UTF-8
 
     if (argc != 2) {
-        printf("Использование: %s <имя файла>\n", argv[0]);
+        wprintf(L"Использование: %s <имя файла>\n", argv[0]);
         return 1;
     }
 
-    FILE *file = fopen(argv[1], "r");
-    if (file == NULL) {
-        printf("Не удалось открыть файл %s\n", argv[1]);
-        return 1;
-    }
+    wchar_t *wideFileName = (wchar_t *)malloc((strlen(argv[1]) + 1) * sizeof(wchar_t));
+    mbstowcs(wideFileName, argv[1], strlen(argv[1]) + 1);
+    FILE *file = _wfopen(wideFileName, L"r, ccs=UTF-8");
+    free(wideFileName);
 
-    char buffer[1000];
 
-    while (fgets(buffer, sizeof(buffer), file)) {
+    wchar_t buffer[100000];
+
+    while (fgetws(buffer, sizeof(buffer), file)) {
         int maxLen = 1; // Длина найденного палиндрома
         int start = 0;  // Начальная позиция найденного палиндрома
-        int len = strlen(buffer); // Определяем длину строки
+        int len = wcslen(buffer); // Определение длины строки
 
         removePunctuationAndSpaces(buffer);
         findPalindromes(buffer, &maxLen, &start, &len);
 
         if (maxLen > 1) {
-            printf("Найден палиндром: ");
+            wprintf(L"Найден палиндром: ");
             for (int i = start; i < start + maxLen; i++) {
-                printf("%c", buffer[i]);
+                wprintf(L"%lc", buffer[i]);
             }
-            printf("\n");
+            wprintf(L"\n");
         }
     }
 
@@ -52,47 +54,46 @@ int main(int argc, char *argv[]) {
 
 
 // Функция, которая проверяет, является ли строка палиндромом
-int isPalindrome(const char *str) {
-    int len = strlen(str);   // Определяем длину строки
-    int i = 0, j = len - 1;  // Инициализируем указатели на начало и конец строки
-    while (i < j) {          // Запускаем цикл, пока i меньше j
-        while (!isalnum(str[i])) {  // Находим первый алфавитно-цифровой символ слева
+int isPalindrome(const wchar_t *str) {
+    int len = wcslen(str);
+    int i = 0, j = len - 1;
+    while (i < j) {
+        while (!iswalnum(str[i])) {
             i++;
         }
-        while (!isalnum(str[j])) {  // Находим первый алфавитно-цифровой символ справа
+        while (!iswalnum(str[j])) {
             j--;
         }
-        if (tolower(str[i]) != tolower(str[j])) {  // Сравниваем символы, игнорируя регистр
-            return 0; // Не палиндром
+        if (towlower(str[i]) != towlower(str[j])) {
+            return 0;
         }
         i++;
         j--;
     }
-    return 1; // Палиндром
+    return 1;
 }
 
-// Функция, которая удаляет пробелы и знаки препинания из строки
-void removePunctuationAndSpaces(char *str) {
-    int len = strlen(str);   // Определяем длину строки
-    char *newStr = (char *)malloc(len * sizeof(char));  // Выделяем память для новой строки
+void removePunctuationAndSpaces(wchar_t *str) {
+    int len = wcslen(str);   // Определяем длину строки
+    wchar_t *newStr = (wchar_t *)malloc((len + 1) * sizeof(wchar_t));  // Выделяем память для новой строки
     if (newStr == NULL) {    // Проверяем успешность выделения памяти
-        printf("Ошибка выделения памяти\n");
+        wprintf(L"Ошибка выделения памяти\n");
         exit(1);
     }
     
     int j = 0;               // Инициализируем индекс для новой строки
     for (int i = 0; i < len; i++) {  // Проходим по символам исходной строки
-        if (isalnum(str[i])) {  // Если символ алфавитно-цифровой, копируем его
-            newStr[j++] = tolower(str[i]); // Преобразуем символ в нижний регистр
+        if (iswalnum(str[i]) || iswspace(str[i])) {  // Если символ алфавитно-цифровой или пробел, копируем его
+            newStr[j++] = towlower(str[i]); // Преобразуем символ в нижний регистр
         }
     }
     
-    newStr[j] = '\0';         // Завершаем новую строку нулевым символом
-    strcpy(str, newStr);      // Заменяем исходную строку на новую
+    newStr[j] = L'\0';         // Завершаем новую строку нулевым символом
+    wcscpy(str, newStr);      // Заменяем исходную строку на новую
     free(newStr);             // Освобождаем память, выделенную для новой строки
 }
 
-void findPalindromes(const char *buffer, int *maxLen, int *start, int *len) {
+void findPalindromes(const wchar_t *buffer, int *maxLen, int *start, int *len) {
     // Выделяем память для двумерного массива dp, используемого для хранения информации о палиндромах
     int **dp = (int **)malloc(*len * sizeof(int *));
     for (int i = 0; i < *len; i++) {
@@ -136,3 +137,8 @@ void findPalindromes(const char *buffer, int *maxLen, int *start, int *len) {
     free(dp);
 }
 
+
+// void SayHiForUser()
+// {
+//      printf   
+// }
