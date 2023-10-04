@@ -4,30 +4,34 @@
 #include <ctype.h>         // Подключаем заголовочный файл для работы с символами
 #include <locale.h>
 
-int isPalindrome(const char *str);
-
-void findPalindromes(const char *buffer, int *maxLen, int *start, int *len);
-
-void removePunctuationAndSpaces(char *str);
-
-void SayHiForUser();
-
+int isPalindrome(const char *str);                                            
+                                                                
+void findPalindromes(const char *buffer, int *maxLen, int *start, int *len);    
+                                                                
+void removePunctuationAndSpaces(char *str);                                     
 
 int main(int argc, char *argv[]) {
         setlocale(LC_ALL, "ru_RU.utf8");
 
     if (argc != 2) {
-        printf("Использование: %s <имя файла>\n", argv[0]);
+        printf("\n|---------------------------------------------------------------------|\n");
+                printf("\033[32m");
+        printf("Использование программы: ");
+                printf("\033[0m");
+        printf("%s <имя файла>\n", argv[0]);
+        printf("|---------------------------------------------------------------------|\n\n");
         return 1;
     }
-
+        // Открытие файла, имя которого передается в качестве аргумента командной строки
     FILE *file = fopen(argv[1], "r");
     if (file == NULL) {
+        printf("\033[1;31m");
         printf("Не удалось открыть файл %s\n", argv[1]);
+        printf("\033[0m");
         return 1;
     }
 
-    char buffer[1000];
+        char buffer[1000];
 
     while (fgets(buffer, sizeof(buffer), file)) {
         int maxLen = 1; // Длина найденного палиндрома
@@ -38,10 +42,14 @@ int main(int argc, char *argv[]) {
         findPalindromes(buffer, &maxLen, &start, &len);
 
         if (maxLen > 1) {
+        printf("\n|-------------------------------------|\n");
+                printf("\033[32m");
             printf("Найден палиндром: ");
+            printf("\033[0m"); // сбрасываем цвет текста в стандартный
             for (int i = start; i < start + maxLen; i++) {
                 printf("%c", buffer[i]);
             }
+            printf("\n|-------------------------------------|\n");
             printf("\n");
         }
     }
